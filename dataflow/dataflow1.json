@@ -15,7 +15,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "AzureSqlTable1",
+						"referenceName": "AzureSqlTable2",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
@@ -24,9 +24,12 @@
 			"transformations": [
 				{
 					"name": "DerivedColumn1"
+				},
+				{
+					"name": "Sort1"
 				}
 			],
-			"script": "source(output(\n\t\tOrderDate as date,\n\t\tRegion as string,\n\t\tRep as string,\n\t\tItem as string,\n\t\tUnits as integer,\n\t\t{Unit Price} as double\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tpartitionBy('hash', 1)) ~> source1\nsource1 derive(TotalCost = Units*{Unit Price}) ~> DerivedColumn1\nDerivedColumn1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tOrderDate as date,\n\t\tRegion as string,\n\t\tRep as string,\n\t\tItem as string,\n\t\tUnits as double,\n\t\tUnit_Price as double\n\t),\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError',\n\tpartitionBy('hash', 1)) ~> sink1"
+			"script": "source(output(\n\t\tOrderDate as string,\n\t\tRegion as string,\n\t\tRep as string,\n\t\tItem as string,\n\t\tUnits as short,\n\t\t{Unit Price} as double\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\tpartitionBy('hash', 1)) ~> source1\nsource1 derive(TotalCost = Units*{Unit Price},\n\tpartitionBy('hash', 1)) ~> DerivedColumn1\nDerivedColumn1 sort(asc(Region, true)) ~> Sort1\nSort1 sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tinput(\n\t\tOrderDate as date,\n\t\tRegion as string,\n\t\tRep as string,\n\t\tItem as string,\n\t\tUnits as double,\n\t\tUnit_Price as double\n\t),\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true,\n\terrorHandlingOption: 'stopOnFirstError',\n\tmapColumn(\n\t\tOrderDate,\n\t\tRegion,\n\t\tRep,\n\t\tItem,\n\t\tUnits,\n\t\tUnit_Price = {Unit Price}\n\t),\n\tpartitionBy('hash', 1)) ~> sink1"
 		}
 	}
 }
